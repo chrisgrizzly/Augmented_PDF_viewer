@@ -20,6 +20,11 @@ PrintWriter annotationFile;
 Table annotationFileData;
 float pdfDPI = 200;
 
+String sourceDir;
+String dataDir;
+String fileName;
+boolean fileSelected = false;
+
 PFont myFont;
 
 PImage pageImg;
@@ -89,10 +94,14 @@ class Annotation {
 //}
 
 void setup() {
+  
+  noLoop();
+  
   //fullScreen(OPENGL);
   //size(1700, 1000, OPENGL);
+  size(displayWidth, displayHeight);
   //size(displayWidth, canvasHeight-100, OPENGL);
-  size(displayWidth, displayHeight, OPENGL);
+  //size(displayWidth, displayHeight, OPENGL);
   background(0);
   pixelDensity(displayDensity());
   
@@ -113,9 +122,22 @@ void setup() {
   
   //print(red(AnnotationColor[currentType.ordinal()]));
   
+  background(0);
+  
+  
+  selectInput("Open a PDF file", "fileSelected");
+  while (!fileSelected) {
+    //print("wait");
+    delay(1000);
+  } //<>//
+  
+  //while(!fileLoaded) {
+  //}
+  
   loadPDFFile();
   loadPDFImage(currentPage);
-  loadAnnotationFile(currentPage);
+  loadAnnotationFile(currentPage);  
+  loop();
   
   ////println(scaleFactor);
   
@@ -126,6 +148,19 @@ void setup() {
   //   .setFocus(true)
   //   .setColor(color(255,0,0))
   //   ;
+}
+
+void fileSelected(File selection) {
+  if (selection == null) {
+    println("Window was closed or the user hit cancel.");
+    exit();
+  } else {
+    println("User selected " + selection.getAbsolutePath());
+    sourceDir = selection.getAbsolutePath(); // Pdf files are read from this folder
+    fileName = selection.getName();
+    dataDir = selection.getParent()+"/"+fileName.substring(0,fileName.indexOf('.'));
+    fileSelected = true;
+  }
 }
 
 void draw() {
@@ -1303,7 +1338,6 @@ void renderToolSelector() {
 
 void loadPDFFile() {
   try {
-    String sourceDir = dataPath("") + "/ハリー・ポッターと賢者の石.pdf"; // Pdf files are read from this folder
     File sourceFile = new File(sourceDir);
     if (sourceFile.exists()) {
       //println("yes");
@@ -1311,7 +1345,7 @@ void loadPDFFile() {
       pdfRenderer = new PDFRenderer(document);
       totalPageNum = document.getNumberOfPages();
       
-      currentPage = int(loadStrings("data/bookmark.csv")[0]);
+      currentPage = int(loadStrings(dataDir+"/bookmark.csv")[0]);
     }
   } catch (Exception e) {
     e.printStackTrace();
@@ -1357,7 +1391,7 @@ void renderImage() {
 
 void loadAnnotationFile(int pageNum) {
   annotationArray = new ArrayList<Annotation>();
-  annotationFileData = loadTable("data/annotation/"+str(pageNum)+".csv", "header");
+  annotationFileData = loadTable(dataDir+"/annotation/"+str(pageNum)+".csv", "header");
   if (annotationFileData != null) {
     nextId = 0;
     for (TableRow row : annotationFileData.rows()) {
@@ -1518,7 +1552,7 @@ void renderAnnotation() {
 
 void saveAnnotationFile(int pageNum) {
   if (annotationArray.size() != 0) {
-    annotationFile = createWriter("data/annotation/"+str(pageNum)+".csv");
+    annotationFile = createWriter(dataDir+"/annotation/"+str(pageNum)+".csv");
     annotationFile.println("id,sX,sY,eX,eY,type,s");
     int rowCount = 0;
     for (Annotation i : annotationArray){
@@ -1534,7 +1568,7 @@ void saveAnnotationFile(int pageNum) {
 }
 
 void saveBookmark(int pageNum) {
-  annotationFile = createWriter("data/bookmark.csv");
+  annotationFile = createWriter(dataDir+"/bookmark.csv");
   annotationFile.println(pageNum);
   annotationFile.flush();
   annotationFile.close();
